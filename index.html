@@ -75,7 +75,7 @@
   .tag { display: inline-block; padding: 1px 8px; border-radius: 999px; font-size: 0.85rem; font-weight: 600; margin-left: 4px; }
   .tag.warn { background: var(--warn-soft); color: var(--warn); }
   .tag.err { background: var(--error-soft); color: var(--error); }
-  .tag.ok { background: var(--accent-soft); color: var(--accent); }
+  .tag.check { background: var(--accent-soft); color: var(--accent); }
 
   details summary { cursor: pointer; font-weight: 700; font-size: 1.3rem; margin: 40px 0 12px; }
   .empty { color: var(--muted); padding: 14px 0; }
@@ -102,7 +102,7 @@
     <h2>לפי ספק וקטגוריה</h2>
     <div class="scroll"><table id="summary"></table></div>
 
-    <h2>חריגים</h2>
+    <h2>חריגים ובדיקות</h2>
     <div id="exceptions"></div>
 
     <details>
@@ -124,6 +124,14 @@
   const esc = function (s) {
     return String(s).replace(/[&<>"']/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]; });
   };
+
+  // צבע התגית לפי חומרה: error = אדום, warning = כתום, check = ירקרק (לבדיקה מול הספק)
+  const TAG_CLASS = { error: 'err', warning: 'warn', check: 'check' };
+  function flagClass(flag) {
+    if (flag === EasyNormalize.FLAG_REPEATED) return 'check';
+    if (flag === 'מחיר שונה לאותה חבילה') return 'warn';
+    return 'err';
+  }
 
   function showError(msg) {
     $('error').textContent = msg;
@@ -153,7 +161,8 @@
       '<li><b>' + res.totalRows + '</b>שורות בקובץ</li>' +
       '<li><b>' + excludedTotal + '</b>הוסרו כהזמנות פנימיות<br><small>' + esc(excludedText) + '</small></li>' +
       '<li><b>' + res.rows.length + '</b>שורות בטבלה האחידה</li>' +
-      '<li><b>' + res.exceptions.length + '</b>חריגים</li>';
+      '<li><b>' + res.exceptions.filter(function (e) { return e.severity !== 'check'; }).length + '</b>חריגים והתרעות</li>' +
+      '<li><b>' + res.exceptions.filter(function (e) { return e.severity === 'check'; }).length + '</b>לבדיקה מול הספק</li>';
 
     // סיכום לפי ספק וקטגוריה
     const groups = {};
@@ -183,7 +192,7 @@
     } else {
       let ex = '<div class="scroll"><table><thead><tr><th>סוג</th><th>ספק</th><th>מספר שובר</th><th>חבילה</th><th>פרטים</th><th>שורה בקובץ</th></tr></thead><tbody>';
       res.exceptions.forEach(function (e) {
-        const cls = e.type === 'מחיר שונה לאותה חבילה' ? 'warn' : 'err';
+        const cls = TAG_CLASS[e.severity] || 'err';
         ex += '<tr><td><span class="tag ' + cls + '">' + esc(e.type) + '</span></td><td>' + esc(e.supplier) +
           '</td><td class="num">' + esc(e.voucher_id) + '</td><td class="wrap">' + esc(e.package_name) +
           '</td><td class="wrap">' + esc(e.details) + '</td><td class="num">' + e.rowNumbers.join(', ') + '</td></tr>';
@@ -195,7 +204,7 @@
     let rows = '<thead><tr><th>מספר שובר</th><th>מספר שובר מקורי</th><th>שם חבילה</th><th>קטגוריה</th><th>כמות</th><th>מחיר</th><th>מחיר סופי</th><th>תאריך הגעה</th><th>ספק</th><th>הערות</th></tr></thead><tbody>';
     res.rows.forEach(function (r) {
       const tags = r.flags.map(function (f) {
-        return '<span class="tag ' + (f === 'מחיר שונה לאותה חבילה' ? 'warn' : 'err') + '">' + esc(f) + '</span>';
+        return '<span class="tag ' + flagClass(f) + '">' + esc(f) + '</span>';
       }).join('');
       rows += '<tr><td class="num">' + esc(r.voucher_id) + '</td><td class="num">' + (r.voucher_cleaned ? esc(JSON.stringify(r.voucher_raw)) : '') +
         '</td><td class="wrap">' + esc(r.package_name) + '</td><td>' + esc(r.category || '') +
