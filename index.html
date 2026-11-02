@@ -1,0 +1,222 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>בדיקת דוח איזי</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Assistant:wght@400;600;700&display=swap">
+<style>
+  :root {
+    color-scheme: light;
+    --bg: #eef3f2;
+    --surface: #ffffff;
+    --ink: #16323a;
+    --muted: #5b7178;
+    --line: #d5e0de;
+    --accent: #136f6b;
+    --accent-soft: #dcefec;
+    --warn: #9a5200;
+    --warn-soft: #fbeedd;
+    --error: #b3261e;
+    --error-soft: #fbe3e1;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      color-scheme: dark;
+      --bg: #0f1d21;
+      --surface: #16282d;
+      --ink: #e3eeec;
+      --muted: #97aeb2;
+      --line: #2a4248;
+      --accent: #5cc3bb;
+      --accent-soft: #1b3a3a;
+      --warn: #f0b060;
+      --warn-soft: #3a2b16;
+      --error: #f08a80;
+      --error-soft: #3d1f1d;
+    }
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; background: var(--bg); color: var(--ink);
+    font-family: "Assistant", "Segoe UI", Arial, sans-serif; font-size: 17px; line-height: 1.55;
+  }
+  main { max-width: 1100px; margin: 0 auto; padding: 32px 20px 64px; }
+  h1 { font-size: 2rem; margin: 0 0 4px; }
+  h2 { font-size: 1.3rem; margin: 40px 0 12px; }
+  p.lead { color: var(--muted); margin: 0 0 24px; max-width: 70ch; }
+
+  .well {
+    display: block; border: 2px dashed var(--accent); border-radius: 14px;
+    background: var(--accent-soft); padding: 36px 24px; text-align: center; cursor: pointer;
+  }
+  .well.drag { background: var(--surface); }
+  .well strong { display: block; font-size: 1.25rem; margin-bottom: 4px; }
+  .well span { color: var(--muted); }
+  .well input { position: absolute; width: 1px; height: 1px; opacity: 0; }
+  .well:focus-within { outline: 3px solid var(--accent); outline-offset: 3px; }
+
+  .error-box { background: var(--error-soft); color: var(--error); border-radius: 10px; padding: 14px 18px; margin-top: 20px; font-weight: 600; }
+
+  .facts { display: flex; flex-wrap: wrap; gap: 12px 32px; margin: 28px 0 0; padding: 0; list-style: none; }
+  .facts li { color: var(--muted); }
+  .facts b { color: var(--ink); font-size: 1.5rem; display: block; line-height: 1.2; }
+
+  .scroll { overflow-x: auto; background: var(--surface); border: 1px solid var(--line); border-radius: 10px; }
+  table { border-collapse: collapse; width: 100%; font-size: 0.95rem; }
+  th, td { padding: 8px 12px; text-align: right; border-bottom: 1px solid var(--line); white-space: nowrap; }
+  th { position: sticky; top: 0; background: var(--surface); font-weight: 700; }
+  td.num { font-variant-numeric: tabular-nums; }
+  tr:last-child td { border-bottom: none; }
+  td.wrap { white-space: normal; min-width: 220px; }
+  tr.supplier-total td { font-weight: 700; background: var(--accent-soft); }
+
+  .tag { display: inline-block; padding: 1px 8px; border-radius: 999px; font-size: 0.85rem; font-weight: 600; margin-left: 4px; }
+  .tag.warn { background: var(--warn-soft); color: var(--warn); }
+  .tag.err { background: var(--error-soft); color: var(--error); }
+  .tag.ok { background: var(--accent-soft); color: var(--accent); }
+
+  details summary { cursor: pointer; font-weight: 700; font-size: 1.3rem; margin: 40px 0 12px; }
+  .empty { color: var(--muted); padding: 14px 0; }
+  .note { color: var(--muted); font-size: 0.9rem; margin-top: 8px; }
+  [hidden] { display: none !important; }
+</style>
+</head>
+<body>
+<main>
+  <h1>בדיקת דוח איזי</h1>
+  <p class="lead">בוחרים את קובץ ה-CSV שיוצא מאיזי, והדף מציג איך הוא נקרא אחרי הניקוי. הקובץ נקרא רק בתוך הדפדפן ולא נשלח לשום מקום.</p>
+
+  <label class="well" id="well">
+    <input type="file" id="file" accept=".csv,text/csv">
+    <strong>בחירת קובץ איזי</strong>
+    <span>אפשר גם לגרור את הקובץ לכאן</span>
+  </label>
+
+  <div class="error-box" id="error" hidden></div>
+
+  <section id="results" hidden>
+    <ul class="facts" id="facts"></ul>
+
+    <h2>לפי ספק וקטגוריה</h2>
+    <div class="scroll"><table id="summary"></table></div>
+
+    <h2>חריגים</h2>
+    <div id="exceptions"></div>
+
+    <details>
+      <summary>הטבלה האחידה המלאה</summary>
+      <div class="scroll"><table id="rows"></table></div>
+      <p class="note">"מספר שובר מקורי" מוצג רק כשהמספר נוקה (הוסרו נקודות או רווחים).</p>
+    </details>
+  </section>
+</main>
+
+<script src="js/csv-parser.js"></script>
+<script src="js/easy-config.js"></script>
+<script src="js/easy-normalize.js"></script>
+<script>
+(function () {
+  'use strict';
+  const $ = function (id) { return document.getElementById(id); };
+  const money = function (x) { return x.toLocaleString('he-IL', { maximumFractionDigits: 2 }) + ' ₪'; };
+  const esc = function (s) {
+    return String(s).replace(/[&<>"']/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]; });
+  };
+
+  function showError(msg) {
+    $('error').textContent = msg;
+    $('error').hidden = false;
+    $('results').hidden = true;
+  }
+
+  function handleFile(file) {
+    if (!file) return;
+    $('error').hidden = true;
+    const reader = new FileReader();
+    reader.onload = function () {
+      try {
+        render(EasyNormalize.normalizeEasy(reader.result, EASY_CONFIG));
+      } catch (e) {
+        showError('לא הצלחתי לקרוא את הקובץ: ' + e.message);
+      }
+    };
+    reader.onerror = function () { showError('לא הצלחתי לפתוח את הקובץ. נסי לבחור אותו שוב.'); };
+    reader.readAsText(file, 'utf-8');
+  }
+
+  function render(res) {
+    const excludedTotal = Object.values(res.excluded).reduce(function (a, b) { return a + b; }, 0);
+    const excludedText = Object.keys(res.excluded).map(function (k) { return k + ': ' + res.excluded[k]; }).join(', ') || 'אין';
+    $('facts').innerHTML =
+      '<li><b>' + res.totalRows + '</b>שורות בקובץ</li>' +
+      '<li><b>' + excludedTotal + '</b>הוסרו כהזמנות פנימיות<br><small>' + esc(excludedText) + '</small></li>' +
+      '<li><b>' + res.rows.length + '</b>שורות בטבלה האחידה</li>' +
+      '<li><b>' + res.exceptions.length + '</b>חריגים</li>';
+
+    // סיכום לפי ספק וקטגוריה
+    const groups = {};
+    res.rows.forEach(function (r) {
+      const s = groups[r.supplier] = groups[r.supplier] || {};
+      const c = r.category || 'לא מסווג';
+      const g = s[c] = s[c] || { lines: 0, qty: 0, total: 0 };
+      g.lines++; g.qty += r.quantity; g.total += r.final_price;
+    });
+    let html = '<thead><tr><th>ספק</th><th>קטגוריה</th><th>שוברים</th><th>כמות</th><th>מחיר סופי</th></tr></thead><tbody>';
+    Object.keys(groups).sort().forEach(function (sup) {
+      let t = { lines: 0, qty: 0, total: 0 };
+      Object.keys(groups[sup]).sort().forEach(function (cat) {
+        const g = groups[sup][cat];
+        t.lines += g.lines; t.qty += g.qty; t.total += g.total;
+        html += '<tr><td>' + esc(sup) + '</td><td>' + esc(cat) + '</td><td class="num">' + g.lines +
+          '</td><td class="num">' + g.qty + '</td><td class="num">' + money(g.total) + '</td></tr>';
+      });
+      html += '<tr class="supplier-total"><td>' + esc(sup) + '</td><td>סה"כ</td><td class="num">' + t.lines +
+        '</td><td class="num">' + t.qty + '</td><td class="num">' + money(t.total) + '</td></tr>';
+    });
+    $('summary').innerHTML = html + '</tbody>';
+
+    // חריגים
+    if (!res.exceptions.length) {
+      $('exceptions').innerHTML = '<p class="empty">לא נמצאו חריגים.</p>';
+    } else {
+      let ex = '<div class="scroll"><table><thead><tr><th>סוג</th><th>ספק</th><th>מספר שובר</th><th>חבילה</th><th>פרטים</th><th>שורה בקובץ</th></tr></thead><tbody>';
+      res.exceptions.forEach(function (e) {
+        const cls = e.type === 'מחיר שונה לאותה חבילה' ? 'warn' : 'err';
+        ex += '<tr><td><span class="tag ' + cls + '">' + esc(e.type) + '</span></td><td>' + esc(e.supplier) +
+          '</td><td class="num">' + esc(e.voucher_id) + '</td><td class="wrap">' + esc(e.package_name) +
+          '</td><td class="wrap">' + esc(e.details) + '</td><td class="num">' + e.rowNumbers.join(', ') + '</td></tr>';
+      });
+      $('exceptions').innerHTML = ex + '</tbody></table></div>';
+    }
+
+    // הטבלה המלאה
+    let rows = '<thead><tr><th>מספר שובר</th><th>מספר שובר מקורי</th><th>שם חבילה</th><th>קטגוריה</th><th>כמות</th><th>מחיר</th><th>מחיר סופי</th><th>תאריך הגעה</th><th>ספק</th><th>הערות</th></tr></thead><tbody>';
+    res.rows.forEach(function (r) {
+      const tags = r.flags.map(function (f) {
+        return '<span class="tag ' + (f === 'מחיר שונה לאותה חבילה' ? 'warn' : 'err') + '">' + esc(f) + '</span>';
+      }).join('');
+      rows += '<tr><td class="num">' + esc(r.voucher_id) + '</td><td class="num">' + (r.voucher_cleaned ? esc(JSON.stringify(r.voucher_raw)) : '') +
+        '</td><td class="wrap">' + esc(r.package_name) + '</td><td>' + esc(r.category || '') +
+        '</td><td class="num">' + r.quantity + '</td><td class="num">' + money(r.price) + '</td><td class="num">' + money(r.final_price) +
+        '</td><td class="num">' + r.start_date_display + '</td><td>' + esc(r.supplier) + '</td><td>' + tags + '</td></tr>';
+    });
+    $('rows').innerHTML = rows + '</tbody>';
+
+    $('results').hidden = false;
+  }
+
+  $('file').addEventListener('change', function (e) { handleFile(e.target.files[0]); });
+  const well = $('well');
+  ['dragenter', 'dragover'].forEach(function (ev) {
+    well.addEventListener(ev, function (e) { e.preventDefault(); well.classList.add('drag'); });
+  });
+  ['dragleave', 'drop'].forEach(function (ev) {
+    well.addEventListener(ev, function (e) { e.preventDefault(); well.classList.remove('drag'); });
+  });
+  well.addEventListener('drop', function (e) { handleFile(e.dataTransfer.files[0]); });
+})();
+</script>
+</body>
+</html>
