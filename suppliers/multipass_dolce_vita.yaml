@@ -1,0 +1,14 @@
+# מולטי פס – דולצ'ה ויטה (שלך, טוב, ויזה כאל, פיס פלוס, לאומי בונוס)
+name: "מולטי פס – דולצ'ה ויטה"
+easy_suppliers: ["דולצ'ה ויטה"]
+detect: ["מספר כרטיס", "שם קופון הטבה", "שווי הטבות"]
+columns:
+  voucher_id: "מספר כרטיס"
+  package_name: "שם קופון הטבה"
+  quantity: "כמות קופונים שמומשו"
+  final_price: "שווי הטבות"
+  customer: "שם"
+  date_parts: {year: "שנה", month: "חודש", day: "יום"}
+has_price: true
+easy_key: coupon
+id_fallback: false
