@@ -1,10 +1,10 @@
 # נתונים אמיתיים וסודות – לעולם לא עולים ל-Git
-config/secrets.yaml
+python/config/secrets.yaml
 data/
 downloads/
 *.xlsx
 *.xls
 *.csv
-!samples/*.csv
+!python/samples/*.csv
 .venv/
 __pycache__/
