@@ -10,9 +10,9 @@
 3. לפתוח את "Command Prompt" (שורת הפקודה) ולהדביק:
    ```
    cd %USERPROFILE%\Documents
-   git clone https://github.com/<שם-המשתמש>/dream-recon.git
+   git clone https://github.com/dreamIslandOrg/yaffaDocs.git
    ```
-4. להיכנס לתיקייה `Documents\dream-recon` וללחוץ לחיצה כפולה על `run.bat`.
+4. להיכנס לתיקייה `Documents\yaffaDocs` וללחוץ לחיצה כפולה על `run.bat`.
 5. במסך, בצד: "הגדרות" – להזין את סיסמת הקובץ של אתר חבר וללחוץ "שמירה" (נשמר רק במחשב הזה).
 
 ## עדכון לגרסה חדשה (Windows)
