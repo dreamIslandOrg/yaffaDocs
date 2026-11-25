@@ -25,15 +25,38 @@ st.markdown("""
 
 
 def load_secrets() -> dict:
+    out = {}
+    try:  # סודות שהוגדרו באתר האירוח (Streamlit Cloud -> Settings -> Secrets)
+        out.update({k: v for k, v in st.secrets.items() if isinstance(v, (str, int, float))})
+    except Exception:
+        pass
     p = BASE / "config" / "secrets.yaml"
     if p.exists():
         with open(p, encoding="utf-8") as f:
-            return yaml.safe_load(f) or {}
-    return {}
+            out.update(yaml.safe_load(f) or {})
+    return out
+
+
+def password_gate(secrets: dict):
+    """אם הוגדרה סיסמת כניסה (app_password) – מבקשים אותה לפני שמציגים משהו."""
+    import hmac
+    expected = str(secrets.get("app_password", "") or "")
+    if not expected or st.session_state.get("auth_ok"):
+        return
+    st.title("הצלבת שוברים – כניסה")
+    pw = st.text_input("סיסמה", type="password")
+    if st.button("כניסה", type="primary"):
+        if hmac.compare_digest(pw, expected):
+            st.session_state["auth_ok"] = True
+            st.rerun()
+        else:
+            st.error("סיסמה שגויה")
+    st.stop()
 
 
 configs = load_supplier_configs(BASE / "suppliers")
 secrets = load_secrets()
+password_gate(secrets)
 
 with st.sidebar:
     st.header("⚙️ הגדרות")
@@ -47,7 +70,7 @@ with st.sidebar:
         st.success("נשמר במחשב הזה בלבד")
 
 st.title("הצלבת שוברים מול איזי גו")
-st.caption("גרסה 6")
+st.caption("גרסה 7")
 st.caption("מעלים את דוח איזי ואת דוחות הספקים (כמה שרוצים בבת אחת), בוחרים תאריך ולוחצים 'הצלב'.")
 
 files = st.file_uploader("קבצים (CSV / אקסל)", accept_multiple_files=True,
